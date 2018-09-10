@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <locale.h> 
 
 #include <rcontrolstationcomm_wrapper.h>
 #include <rcontrolstationcomm_types.h> 
@@ -14,8 +15,9 @@ const char *hlp_str =
   "------------------------------------------------------------\n"\
   "help - Displays this message\n"\
   "exit - Exits from sdvpt\n"\
-  "connectTcp <host> <port> - connect to RControlStation\n"\
-  "getState <car> [timeoutms] - get state from car\n"\
+  "connectTcp <host> <port> - Connect to RControlStation\n"\
+  "getState <car> [timeoutms] - Get state from car\n"\
+  "getRoute <car> <route> [timeoutms] - Get route points\n"\
   "------------------------------------------------------------\n";
 
 
@@ -24,7 +26,8 @@ const char *cmds[] ={"help",
 		     "q",
 		     "connectTcp",
 		     "disconnectTcp",
-		     "getState"};
+		     "getState",
+                     "getRoute"};
 
 #define MAX_PROMPT_SIZE 256
 char prompt[MAX_PROMPT_SIZE] = "> ";
@@ -80,12 +83,12 @@ int getState_cmd(int n, char **args) {
   /* memset(&s, 0, sizeof(CAR_STATE)); */ 
   
   
-  if ( n < 1 || n > 3) {
+  if ( n < 1 || n > 2) {
     printf("Wrong number of arguments!\nUsage: getState <car> [timeoutms]\n");
     return 1;
   }
 
-  if (n == 3) {
+  if (n == 2) {
     timeoutms = atoi(args[2]);
   }
   car = atoi(args[1]); 
@@ -119,7 +122,47 @@ int getState_cmd(int n, char **args) {
   }
   
   return 1;
+}
+
+int getRoute_cmd(int n, char **args) {
+
+  const int max_route_len = 4096;
+  ROUTE_POINT *route; 
+  int car_id;
+  int route_id;
+  int timeout = 1000;
+  int route_len = 0;
+  int i; 
   
+  if (!(n == 3 || n == 4)) {
+    printf("Wrong number of arguments!\nUsage: getRoute <car> <route> [timeoutms]\n");
+    return 1;
+  }
+  
+  route = (ROUTE_POINT*)malloc(max_route_len * sizeof(ROUTE_POINT));
+
+  if (!route){
+    printf("Error allocating memory for route data\n");
+    return 1;
+  }
+
+  car_id = atoi(args[1]);
+  route_id = atoi(args[2]); 
+  if (n == 4) {
+    timeout = atoi(args[3]);
+  }
+   
+  rcsc_getRoutePoints(car_id, route, &route_len, max_route_len, route_id, timeout);
+
+  for (i = 0; i < route_len; i ++) {
+    printf("%lf, %lf, %lf, %d\n",
+	   route[i].px,
+	   route[i].py,
+	   route[i].speed,
+	   route[i].time);
+  }
+  free(route); 
+  return 1; 
 }
 
 /* ------------------------------------------------------------ 
@@ -131,7 +174,8 @@ int (*cmd_func[]) (int, char **) = {
   &exit_cmd,
   &connectTcp_cmd,
   &disconnectTcp_cmd,
-  &getState_cmd};
+  &getState_cmd,
+  &getRoute_cmd};
 
 /* ------------------------------------------------------------ */ 
 int tokenize(char *cmd_str, char ***tokens) {
@@ -182,6 +226,8 @@ int main(int argc, char **argv){
   int n = 0;
   
   /* Initialisation */
+  setlocale(LC_NUMERIC, "C");
+  
   cmd_buffer = malloc(cmd_buffer_size * sizeof(char));
 
   tokens = malloc(num_tokens * sizeof(char*));
@@ -202,7 +248,8 @@ int main(int argc, char **argv){
   
   
   free(tokens); 
-  free(cmd_buffer); 
+  free(cmd_buffer);
+  setlocale(LC_ALL,NULL);
   printf("Done!\n");
   
 }
