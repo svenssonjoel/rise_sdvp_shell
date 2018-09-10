@@ -1,3 +1,19 @@
+/*
+    Copyright 2018 Joel Svensson	svenssonjoel@yahoo.se
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +33,7 @@ const char *hlp_str =
   "exit - Exits from sdvpt\n"\
   "connectTcp <host> <port> - Connect to RControlStation\n"\
   "getState <car> [timeoutms] - Get state from car\n"\
-  "getRoute <car> <route> [timeoutms] - Get route points\n"\
+  "getRoute <route> [timeoutms] - Get route points\n"\
   "------------------------------------------------------------\n";
 
 
@@ -128,14 +144,14 @@ int getRoute_cmd(int n, char **args) {
 
   const int max_route_len = 4096;
   ROUTE_POINT *route; 
-  int car_id;
+  int car_id = 0;
   int route_id;
   int timeout = 1000;
   int route_len = 0;
   int i; 
   
-  if (!(n == 3 || n == 4)) {
-    printf("Wrong number of arguments!\nUsage: getRoute <car> <route> [timeoutms]\n");
+  if (!(n == 2 || n == 3)) {
+    printf("Wrong number of arguments!\nUsage: getRoute <route_id> [timeoutms]\n");
     return 1;
   }
   
@@ -146,10 +162,11 @@ int getRoute_cmd(int n, char **args) {
     return 1;
   }
 
-  car_id = atoi(args[1]);
-  route_id = atoi(args[2]); 
-  if (n == 4) {
-    timeout = atoi(args[3]);
+  /* car_id does not seem to matter */ 
+  /*car_id = atoi(args[1]); */ 
+  route_id = atoi(args[1]); 
+  if (n == 3) {
+    timeout = atoi(args[2]);
   }
    
   rcsc_getRoutePoints(car_id, route, &route_len, max_route_len, route_id, timeout);
