@@ -34,6 +34,9 @@ const char *hlp_str =
   "connectTcp <host> <port> - Connect to RControlStation\n"\
   "getState <car> [timeoutms] - Get state from car\n"\
   "getRoute <route> [timeoutms] - Get route points\n"\
+  "clearRoute <route> [timeoutms] - Clear a route\n"\
+  "errors - Lists errors if any occured on the SDVP\n"\
+  "setDebugLevel <level> - Set debug level\n"\
   "------------------------------------------------------------\n";
 
 
@@ -43,7 +46,10 @@ const char *cmds[] ={"help",
 		     "connectTcp",
 		     "disconnectTcp",
 		     "getState",
-                     "getRoute"};
+                     "getRoute",
+		     "clearRoute",
+		     "errors",
+		     "setDebugLevel"};
 
 #define MAX_PROMPT_SIZE 256
 char prompt[MAX_PROMPT_SIZE] = "> ";
@@ -179,6 +185,58 @@ int getRoute_cmd(int n, char **args) {
   return 1; 
 }
 
+int clearRoute_cmd(int n, char **args) {
+
+  int route; 
+  int timeout = 1000;
+  int car = 0; /* Assuming this does not matter */
+  int res = 0;
+  
+  if (!(n == 2 || n == 3)) {
+    printf("Wrong number of arguments!\nUsage: clearRoute <route_id> [timeoutms]\n");
+    return 1;
+  }
+
+  route = atoi(args[1]); 
+
+  res = rcsc_clearRoute(car, route, timeout);
+
+  printf("%s\n", res ? "Success!" : "Failed!");
+
+  return 1;
+}
+
+int errors_cmd(int n, char **args) {
+
+  int num_errors = 0; 
+
+  while (rcsc_hasError()) {
+    num_errors++;
+    printf("%s\n", rcsc_lastError());
+  }
+
+  if (num_errors == 0) {
+    printf("No errors!\n");
+  }
+
+  return 1;
+}
+
+int setDebugLevel_cmd(int n, char **args) {
+
+  int level;
+
+  if ( n != 2) {
+    printf("Wrong number of arguments!\nUsage: setDebugLevel <level>\n");
+    return 1; 
+  }
+
+  level = atoi(args[1]);
+  rcsc_setDebugLevel(level);
+  return 1; 
+}
+  
+
 /* ------------------------------------------------------------ 
  * Array of command callbacks
  * ------------------------------------------------------------ */
@@ -189,7 +247,10 @@ int (*cmd_func[]) (int, char **) = {
   &connectTcp_cmd,
   &disconnectTcp_cmd,
   &getState_cmd,
-  &getRoute_cmd};
+  &getRoute_cmd,
+  &clearRoute_cmd, 
+  &errors_cmd,
+  &setDebugLevel_cmd};
 
 /* ------------------------------------------------------------ */ 
 int tokenize(char *cmd_str, char ***tokens) {
