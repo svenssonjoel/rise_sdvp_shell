@@ -95,9 +95,6 @@ int getState_cmd(int n, char **args) {
   int rval = 0;
   int car;
   int timeoutms = 1000;
-
-  /* memset(&s, 0, sizeof(CAR_STATE)); */ 
-  
   
   if ( n < 1 || n > 2) {
     printf("Wrong number of arguments!\nUsage: getState <car> [timeoutms]\n");
