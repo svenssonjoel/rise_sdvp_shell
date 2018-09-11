@@ -28,16 +28,18 @@ const char *header = "SDVPT\ntyping \"help\" shows a list of applicable commands
 const char *tokdelim = "\n\t\r ";
 
 const char *hlp_str =
-  "------------------------------------------------------------\n"\
+  "----------------------------------------------------------------------\n"\
   "help - Displays this message\n"\
   "exit - Exits from sdvpt\n"\
   "connectTcp <host> <port> - Connect to RControlStation\n"\
   "getState <car> [timeoutms] - Get state from car\n"\
   "getRoute <route> [timeoutms] - Get route points\n"\
-  "clearRoute <route> [timeoutms] - Clear a route\n"\
+  "addRoutePoints <car> <replace> <map only> <route> <lenght> [timeoutms] -\n"\
+  "   Add points to a route\n"\
+  "clearRoute <route> [timeoutms] - Clear a route\n"	\
   "errors - Lists errors if any occured on the SDVP\n"\
   "setDebugLevel <level> - Set debug level\n"\
-  "------------------------------------------------------------\n";
+  "----------------------------------------------------------------------\n";
 
 
 const char *cmds[] ={"help",
@@ -47,6 +49,7 @@ const char *cmds[] ={"help",
 		     "disconnectTcp",
 		     "getState",
                      "getRoute",
+		     "addRoutePoints",
 		     "clearRoute",
 		     "errors",
 		     "setDebugLevel"};
@@ -185,6 +188,57 @@ int getRoute_cmd(int n, char **args) {
   return 1; 
 }
 
+/* <car> <replace> <map only> <route> <route len>[timeoutms] */
+int addRoutePoints_cmd(int n, char **args) {
+  int car;
+  int replace;
+  int map_only;
+  int route_id;
+  int len;
+  int timeout = 1000;
+  int i = 0;
+  char buffer[256];
+  int res;
+
+  ROUTE_POINT *route = NULL; 
+  
+  if ( !(n = 6 || n == 7)) {
+    printf("Wrong number of arguments!\nUsage: addRoutePoints <car> <replace> <map only> <route_id> <route length> [timeoutms]\n");
+    return 1;
+  }
+
+  car = atoi(args[1]);
+  replace = atoi(args[2]);
+  map_only = atoi(args[3]);
+  route_id = atoi(args[4]);
+  len = atoi(args[5]);
+  if (n == 7) {
+    timeout = atoi(args[6]);
+  }
+
+  route = (ROUTE_POINT*)malloc(len * sizeof(ROUTE_POINT)); 
+  if (!route) {
+    printf("Error allocating memory!\n");
+    return 1;
+  }
+  
+  for (i = 0; i < len; i ++) {
+    memset(buffer, 0, 256);
+    fgets(buffer, 256, stdin); 
+    sscanf(buffer, "%lf , %lf , %lf , %d \n",
+	   &route[i].px,
+	   &route[i].py,
+	   &route[i].speed,
+	   &route[i].time);
+  }
+
+  res = rcsc_addRoutePoints(car, route, len, replace, map_only, route_id, timeout);
+  printf("addRoutePoints: %s!\n", res ? "Success" : "Failed"); 
+
+  free(route);
+  return 1;
+}
+
 int clearRoute_cmd(int n, char **args) {
 
   int route; 
@@ -248,6 +302,7 @@ int (*cmd_func[]) (int, char **) = {
   &disconnectTcp_cmd,
   &getState_cmd,
   &getRoute_cmd,
+  &addRoutePoints_cmd,
   &clearRoute_cmd, 
   &errors_cmd,
   &setDebugLevel_cmd};
