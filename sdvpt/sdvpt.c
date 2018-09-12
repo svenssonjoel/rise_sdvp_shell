@@ -39,6 +39,7 @@ const char *hlp_str =
   "clearRoute <route> [timeoutms] - Clear a route\n"	\
   "errors - Lists errors if any occured on the SDVP\n"\
   "setDebugLevel <level> - Set debug level\n"\
+  "carTerminal - Connect to a terminal on the car\n"\
   "----------------------------------------------------------------------\n";
 
 
@@ -52,10 +53,13 @@ const char *cmds[] ={"help",
 		     "addRoutePoints",
 		     "clearRoute",
 		     "errors",
-		     "setDebugLevel"};
+		     "setDebugLevel",
+		     "carTerminal"};
 
 #define MAX_PROMPT_SIZE 256
 char prompt[MAX_PROMPT_SIZE] = "> ";
+
+char car_term_prompt[MAX_PROMPT_SIZE] = "('exit' to return)>";
 
 /* ------------------------------------------------------------ 
  * Command implementations 
@@ -289,7 +293,38 @@ int setDebugLevel_cmd(int n, char **args) {
   rcsc_setDebugLevel(level);
   return 1; 
 }
+
+/* Does not work as desired */ 
+int carTerminal_cmd(int n, char **args) {
+
+  int i = 0;
+  int res; 
   
+  char cmdbuffer[2048];
+  char *replybuffer;
+
+  replybuffer = malloc(65536);
+  
+  while (1) {
+
+    printf("%s", car_term_prompt);
+    memset(cmdbuffer, 0, 2048);
+    fgets(cmdbuffer, 2048, stdin);
+    
+    if (!strncmp("exit", cmdbuffer, 4)) {
+      return 1;
+    }
+
+    /* Probably need changes to rcontrolstationcomm for this 
+       to make sense */ 
+    res = rcsc_sendTerminalCmd(0, cmdbuffer, replybuffer, 4000);
+    
+    if (!res) printf("Error!\n");
+    
+    printf("%s",replybuffer);
+  }
+}
+
 
 /* ------------------------------------------------------------ 
  * Array of command callbacks
@@ -305,7 +340,8 @@ int (*cmd_func[]) (int, char **) = {
   &addRoutePoints_cmd,
   &clearRoute_cmd, 
   &errors_cmd,
-  &setDebugLevel_cmd};
+  &setDebugLevel_cmd,
+  &carTerminal_cmd};
 
 /* ------------------------------------------------------------ */ 
 int tokenize(char *cmd_str, char ***tokens) {
