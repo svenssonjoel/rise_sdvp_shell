@@ -327,7 +327,7 @@ int carTerminal_cmd(int n, char **args) {
 
 
 /* ------------------------------------------------------------ 
- * Array of command callbacks
+ * Array of command functions
  * ------------------------------------------------------------ */
 int (*cmd_func[]) (int, char **) = {
   &help_cmd,
