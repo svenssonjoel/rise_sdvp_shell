@@ -299,29 +299,64 @@ int carTerminal_cmd(int n, char **args) {
 
   int i = 0;
   int res; 
+
+  int ok = 1;
   
-  char cmdbuffer[2048];
+  char *cmdbuffer;
   char *replybuffer;
 
-  replybuffer = malloc(65536);
+  char *forbidden[] = {"help",
+		       "mem",
+		       "threads"}; 
+  
+  cmdbuffer   = (char*)malloc(2048 * sizeof(char));
+  replybuffer = (char*)malloc(2048 * sizeof(char));
+
+  if (!(cmdbuffer || replybuffer)) {
+    printf("Error allocating command buffers\n");
+    return 1;
+  }
+
+  printf("Entering the car terminal\n");
   
   while (1) {
-
+    ok = 1;  /* Start each iteration with things being ok */ 
+    
     printf("%s", car_term_prompt);
     memset(cmdbuffer, 0, 2048);
     fgets(cmdbuffer, 2048, stdin);
+
+    for (i = 0; i < 2048; ++i) {
+      if (cmdbuffer[i] == '\n')
+	cmdbuffer[i] = 0; 
+    }
     
     if (!strncmp("exit", cmdbuffer, 4)) {
+      free(cmdbuffer);
+      free(replybuffer);
       return 1;
     }
 
+    /* do not allow any forbidden commands */ 
+    for (i = 0; i < (sizeof(forbidden) / sizeof(char*)) ; i++) {
+      int len = strlen(forbidden[i]);
+      if (!strncmp(forbidden[i], cmdbuffer, len)) ok = 0;
+    }
+
+    /* do not allow the sending of empty messages */ 
+    if (strlen(cmdbuffer) == 0) ok = 0; 
+    
     /* Probably need changes to rcontrolstationcomm for this 
-       to make sense */ 
-    res = rcsc_sendTerminalCmd(0, cmdbuffer, replybuffer, 4000);
+       to make sense */
+    if (ok) {
+      res = rcsc_sendTerminalCmd(0, cmdbuffer, replybuffer, 1000);
     
-    if (!res) printf("Error!\n");
+      if (!res) printf("Error!\n");
     
-    printf("%s",replybuffer);
+      printf("%s",replybuffer);
+    } else {
+      printf("The command you attempted is currently not allowed! (Work in progress)\n");
+    }
   }
 }
 
