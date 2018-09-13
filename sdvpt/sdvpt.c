@@ -22,7 +22,9 @@
 #include <locale.h> 
 
 #include <rcontrolstationcomm_wrapper.h>
-#include <rcontrolstationcomm_types.h> 
+#include <rcontrolstationcomm_types.h>
+
+#define DEFAULT_TIMEOUT 1000
 
 const char *header = "SDVPT\ntyping \"help\" shows a list of applicable commands\n";
 const char *tokdelim = "\n\t\r ";
@@ -40,6 +42,8 @@ const char *hlp_str =
   "errors - Lists errors if any occured on the SDVP\n"\
   "setDebugLevel <level> - Set debug level\n"\
   "carTerminal - Connect to a terminal on the car\n"\
+  "startAutopilot <car> [timeoutms] - start the autopilot\n"\
+  "stopAutopilot <car> [timeoutms] - stop the autopilot\n"\
   "----------------------------------------------------------------------\n";
 
 
@@ -54,7 +58,9 @@ const char *cmds[] ={"help",
 		     "clearRoute",
 		     "errors",
 		     "setDebugLevel",
-		     "carTerminal"};
+		     "carTerminal",
+		     "startAutopilot",
+		     "stopAutopilot"};
 
 #define MAX_PROMPT_SIZE 256
 char prompt[MAX_PROMPT_SIZE] = "> ";
@@ -107,14 +113,14 @@ int getState_cmd(int n, char **args) {
   CAR_STATE s;
   int rval = 0;
   int car;
-  int timeoutms = 1000;
+  int timeoutms = DEFAULT_TIMEOUT;
   
-  if ( n < 1 || n > 2) {
+  if ( n < 2 || n > 3) {
     printf("Wrong number of arguments!\nUsage: getState <car> [timeoutms]\n");
     return 1;
   }
 
-  if (n == 2) {
+  if (n == 3) {
     timeoutms = atoi(args[2]);
   }
   car = atoi(args[1]); 
@@ -156,7 +162,7 @@ int getRoute_cmd(int n, char **args) {
   ROUTE_POINT *route; 
   int car_id = 0;
   int route_id;
-  int timeout = 1000;
+  int timeout = DEFAULT_TIMEOUT;
   int route_len = 0;
   int i; 
   
@@ -199,7 +205,7 @@ int addRoutePoints_cmd(int n, char **args) {
   int map_only;
   int route_id;
   int len;
-  int timeout = 1000;
+  int timeout = DEFAULT_TIMEOUT;
   int i = 0;
   char buffer[256];
   int res;
@@ -246,7 +252,7 @@ int addRoutePoints_cmd(int n, char **args) {
 int clearRoute_cmd(int n, char **args) {
 
   int route; 
-  int timeout = 1000;
+  int timeout = DEFAULT_TIMEOUT;
   int car = 0; /* Assuming this does not matter */
   int res = 0;
   
@@ -349,7 +355,7 @@ int carTerminal_cmd(int n, char **args) {
     /* Probably need changes to rcontrolstationcomm for this 
        to make sense */
     if (ok) {
-      res = rcsc_sendTerminalCmd(0, cmdbuffer, replybuffer, 1000);
+      res = rcsc_sendTerminalCmd(0, cmdbuffer, replybuffer, DEFAULT_TIMEOUT);
     
       if (!res) printf("Error!\n");
     
@@ -358,6 +364,53 @@ int carTerminal_cmd(int n, char **args) {
       printf("The command you attempted is currently not allowed! (Work in progress)\n");
     }
   }
+}
+
+
+int startAutopilot_cmd(int n, char **args) {
+
+  int car = 0;
+  int timeoutms = DEFAULT_TIMEOUT;
+  int res = 0; 
+  
+  if ( n < 2 || n > 3) {
+    printf("Wrong number of arguments!\nUsage: startAutopilot <car> [timeoutms]\n");
+    return 1;
+  }
+
+  if (n == 3) {
+    timeoutms = atoi(args[2]);
+  }
+  car = atoi(args[1]); 
+
+  res = rcsc_setAutopilotActive(car, 1, timeoutms);
+
+  printf("Start autopilot: %s\n", res ? "Ok!" : "Failed!");
+  
+  return 1;
+}
+
+int stopAutopilot_cmd(int n, char **args) {
+  
+  int car = 0;
+  int timeoutms = DEFAULT_TIMEOUT;
+  int res = 0;
+  
+  if ( n < 2 || n > 3) {
+    printf("Wrong number of arguments!\nUsage: stopAutopilot <car> [timeoutms]\n");
+    return 1;
+  }
+
+  if (n == 3) {
+    timeoutms = atoi(args[2]);
+  }
+  car = atoi(args[1]); 
+
+  res = rcsc_setAutopilotActive(car, 0, timeoutms);
+
+  printf("Stop autopilot: %s\n", res ? "Ok!" : "Failed!");
+  
+  return 1;
 }
 
 
@@ -376,7 +429,9 @@ int (*cmd_func[]) (int, char **) = {
   &clearRoute_cmd, 
   &errors_cmd,
   &setDebugLevel_cmd,
-  &carTerminal_cmd};
+  &carTerminal_cmd,
+  &startAutopilot_cmd,
+  &stopAutopilot_cmd};
 
 /* ------------------------------------------------------------ */ 
 int tokenize(char *cmd_str, char ***tokens) {
