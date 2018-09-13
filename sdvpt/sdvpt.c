@@ -303,6 +303,7 @@ int setDebugLevel_cmd(int n, char **args) {
 /* Does not work as desired */ 
 int carTerminal_cmd(int n, char **args) {
 
+  int car = 0; 
   int i = 0;
   int res; 
 
@@ -314,7 +315,15 @@ int carTerminal_cmd(int n, char **args) {
   char *forbidden[] = {"help",
 		       "mem",
 		       "threads"}; 
+
+  if (n != 2) {
+    printf("Wrong number of arguments!\nUsage: carTerminal <car>\n");
+    return 1;
+  }
+
+  car = atoi(args[1]); 
   
+    
   cmdbuffer   = (char*)malloc(2048 * sizeof(char));
   replybuffer = (char*)malloc(2048 * sizeof(char));
 
@@ -355,7 +364,7 @@ int carTerminal_cmd(int n, char **args) {
     /* Probably need changes to rcontrolstationcomm for this 
        to make sense */
     if (ok) {
-      res = rcsc_sendTerminalCmd(0, cmdbuffer, replybuffer, DEFAULT_TIMEOUT);
+      res = rcsc_sendTerminalCmd(car, cmdbuffer, replybuffer, DEFAULT_TIMEOUT);
     
       if (!res) printf("Error!\n");
     
